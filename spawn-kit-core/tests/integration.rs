@@ -110,9 +110,7 @@ fn request_serialize_metadata_action() {
     };
 
     let json = serde_json::to_string(&req).unwrap();
-    assert!(json.contains("83")); // 'S'
-    assert!(json.contains("75")); // 'K'
-    assert!(json.contains("84")); // 'T'
+    assert!(json.contains("SKKT"));
     assert!(json.contains("metadata"));
 }
 
