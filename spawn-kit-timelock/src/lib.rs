@@ -1,0 +1,76 @@
+//! spawn-kit-timelock: Epoch-based time-locked access control.
+//!
+//! ## Params: `{"since_epoch":12345678}`
+
+#![no_std]
+#![no_main]
+
+extern crate alloc;
+
+use serde::Deserialize;
+use spawn_kit_core::{read_request, write_response, CycleTracker, ErrorCode, Response, PROTOCOL_MAGIC};
+
+const ERR_EPOCH_NOT_REACHED: u32 = 0x2001;
+
+#[derive(Debug, Deserialize)]
+struct TimelockParams {
+    since_epoch: u64,
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn _start() -> ! {
+    let tracker = CycleTracker::start();
+
+    let request = match read_request() {
+        Ok(r) => r,
+        Err(e) => {
+            write_response(&Response::error(e, b"bad request"));
+            ckb_std::syscalls::exit(-1);
+        }
+    };
+
+    if request.magic != PROTOCOL_MAGIC {
+        write_response(&Response::error(ErrorCode::InvalidMagic, b"protocol mismatch"));
+        ckb_std::syscalls::exit(-1);
+    }
+
+    let cycles = tracker.elapsed();
+
+    match core::str::from_utf8(&request.action).unwrap_or("") {
+        "verify" => {
+            let params_str = core::str::from_utf8(&request.params).unwrap_or("{}");
+            let params: TimelockParams = match serde_json_core::from_str::<TimelockParams>(params_str) {
+                Ok((p, _)) => p,
+                Err(_) => {
+                    write_response(&Response::error(ErrorCode::JsonParseError, b"bad params"));
+                    ckb_std::syscalls::exit(-1);
+                }
+            };
+
+            let current_epoch = ckb_std::high_level::load_header_epoch_number(0, ckb_std::ckb_constants::Source::HeaderDep).unwrap_or(0);
+            if current_epoch >= params.since_epoch {
+                write_response(&Response::ok(None, cycles));
+            } else {
+                write_response(&Response::error(ErrorCode::UnknownError, b"epoch not yet reached"));
+                ckb_std::syscalls::exit(-1);
+            }
+        }
+        "metadata" => {
+            let meta = b"{\"name\":\"spawn-kit-timelock\",\"version\":\"0.1.0\"}";
+            write_response(&Response::ok(Some(meta.to_vec()), cycles));
+        }
+        _ => {
+            write_response(&Response::error(ErrorCode::InvalidAction, b"unknown action"));
+            ckb_std::syscalls::exit(-1);
+        }
+    }
+    ckb_std::syscalls::exit(0);
+}
+
+use ckb_std::default_alloc;
+default_alloc!();
+
+#[panic_handler]
+fn panic_handler(_: &core::panic::PanicInfo) -> ! {
+    ckb_std::syscalls::exit(-99);
+}

@@ -1,0 +1,13 @@
+[package]
+name = "composed-lock-example"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+spawn-kit-core = { path = "../../spawn-kit-core" }
+ckb-std = { version = "0.16", features = ["build-with-clang"] }
+serde = { version = "1", default-features = false, features = ["derive"] }
+serde-json-core = "0.1"

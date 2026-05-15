@@ -1,0 +1,13 @@
+[package]
+name = "spawn-kit-ratelimit"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+spawn-kit-core = { workspace = true }
+ckb-std = { version = "0.16", features = ["build-with-clang"] }
+serde = { workspace = true }
+serde-json-core = { workspace = true }
