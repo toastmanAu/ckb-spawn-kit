@@ -56,11 +56,22 @@ spawn-kit-escrow:
 test:
 	cargo test --workspace
 
-# Run a module through ckb-debugger with the tx.json fixture
-test-debugger-multisig: spawn-kit-multisig
-	ckb-debugger --tx-file examples/basic_multisig/tx.json \
-	             --bin $(BUILD_DIR)/spawn-kit-multisig \
-	             --mode full
+# Run all ckb-debugger integration tests (validates fixtures + VM execution)
+test-debugger: modules
+	@bash tests/run-debugger.sh all
+
+# Run a specific module's debugger tests
+test-debugger-multisig: modules
+	@bash tests/run-debugger.sh multisig
+
+test-debugger-timelock: modules
+	@bash tests/run-debugger.sh timelock
+
+test-debugger-ratelimit: modules
+	@bash tests/run-debugger.sh ratelimit
+
+# Run all tests (unit + debugger integration)
+test-all: test test-debugger
 
 # ── Code quality ──────────────────────────────────────────────────────
 
@@ -84,7 +95,8 @@ help:
 	@echo "Targets:"
 	@echo "  make all            — build all RISC-V modules"
 	@echo "  make <module-name>  — build a single module (e.g. make spawn-kit-multisig)"
-	@echo "  make test           — run unit tests (host target)"
-	@echo "  make test-debugger-*  — run through ckb-debugger"
-	@echo "  make lint           — clippy + fmt check"
-	@echo "  make clean          — remove build artifacts"
+	@echo "  make test            — run unit tests"
+	@echo "  make test-debugger   — run all ckb-debugger integration tests"
+	@echo "  make test-all        — run unit + debugger integration tests"
+	@echo "  make lint            — clippy + fmt check"
+	@echo "  make clean           — remove build artifacts"

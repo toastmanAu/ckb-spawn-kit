@@ -3,22 +3,22 @@
     "inputs": [
       {
         "input": {
+          "since": "0x0",
           "previous_output": {
             "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000004",
-            "index": 0
-          },
-          "since": "0x0"
+            "index": "0x0"
+          }
         },
         "output": {
           "capacity": "0x174876e800",
           "lock": {
-            "code_hash": "0x2222222222222222222222222222222222222222222222222222222222222222",
-            "hash_type": "data",
+            "code_hash": "0x{{ hash ../../build/spawn-kit-timelock }}",
+            "hash_type": "data2",
             "args": "0xb80b000000000000"
           },
           "type": null
         },
-        "data": []
+        "data": "0x"
       }
     ],
     "cell_deps": [
@@ -26,7 +26,7 @@
         "cell_dep": {
           "out_point": {
             "tx_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
-            "index": 0
+            "index": "0x0"
           },
           "dep_type": "code"
         },
@@ -34,21 +34,28 @@
           "capacity": "0x174876e800",
           "lock": {
             "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "hash_type": "data",
+            "hash_type": "data2",
             "args": "0x"
           },
           "type": null
         },
-        "data": ["<spawn-kit-timelock RISC-V binary hex>"]
+        "data": "0x{{ data ../../build/spawn-kit-timelock }}"
       }
     ],
-    "headers": [
+    "header_deps": [
       {
-        "header": {
-          "raw": {
-            "epoch": "0x6400000000000000"
-          }
-        }
+        "compact_target": "0x1e0832",
+        "dao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "epoch": "0x6400000000000000",
+        "extra_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "nonce": "0x0",
+        "number": "0x64",
+        "parent_hash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "proposals_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp": "0x64",
+        "transactions_root": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "version": "0x0"
       }
     ]
   },
@@ -58,18 +65,21 @@
       {
         "out_point": {
           "tx_hash": "0x4444444444444444444444444444444444444444444444444444444444444444",
-          "index": 0
+          "index": "0x0"
         },
         "dep_type": "code"
       }
     ],
+    "header_deps": [
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    ],
     "inputs": [
       {
+        "since": "0x0",
         "previous_output": {
           "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000004",
-          "index": 0
-        },
-        "since": "0x0"
+          "index": "0x0"
+        }
       }
     ],
     "outputs": [
@@ -77,18 +87,17 @@
         "capacity": "0x0",
         "lock": {
           "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-          "hash_type": "data",
+          "hash_type": "data2",
           "args": "0x"
         },
         "type": null
       }
     ],
+    "outputs_data": [
+      "0x"
+    ],
     "witnesses": [
-      {
-        "lock": "0x",
-        "input_type": null,
-        "output_type": null
-      }
+      "0x"
     ]
   }
 }

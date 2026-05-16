@@ -3,22 +3,22 @@
     "inputs": [
       {
         "input": {
+          "since": "0x0",
           "previous_output": {
             "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
-            "index": 0
-          },
-          "since": "0x0"
+            "index": "0x0"
+          }
         },
         "output": {
           "capacity": "0x174876e800",
           "lock": {
-            "code_hash": "0x1111111111111111111111111111111111111111111111111111111111111111",
-            "hash_type": "data",
+            "code_hash": "0x{{ hash ../../build/spawn-kit-multisig }}",
+            "hash_type": "data2",
             "args": "0x0305000000000000000000000000000000000000000000000000000000000000"
           },
           "type": null
         },
-        "data": []
+        "data": "0x"
       }
     ],
     "cell_deps": [
@@ -26,7 +26,7 @@
         "cell_dep": {
           "out_point": {
             "tx_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
-            "index": 0
+            "index": "0x0"
           },
           "dep_type": "code"
         },
@@ -34,15 +34,15 @@
           "capacity": "0x174876e800",
           "lock": {
             "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "hash_type": "data",
+            "hash_type": "data2",
             "args": "0x"
           },
           "type": null
         },
-        "data": ["<spawn-kit-multisig RISC-V binary hex>"]
+        "data": "0x{{ data ../../build/spawn-kit-multisig }}"
       }
     ],
-    "headers": []
+    "header_deps": []
   },
   "tx": {
     "version": "0x0",
@@ -50,18 +50,19 @@
       {
         "out_point": {
           "tx_hash": "0x3333333333333333333333333333333333333333333333333333333333333333",
-          "index": 0
+          "index": "0x0"
         },
         "dep_type": "code"
       }
     ],
+    "header_deps": [],
     "inputs": [
       {
+        "since": "0x0",
         "previous_output": {
           "tx_hash": "0x0000000000000000000000000000000000000000000000000000000000000002",
-          "index": 0
-        },
-        "since": "0x0"
+          "index": "0x0"
+        }
       }
     ],
     "outputs": [
@@ -69,18 +70,17 @@
         "capacity": "0x0",
         "lock": {
           "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-          "hash_type": "data",
+          "hash_type": "data2",
           "args": "0x"
         },
         "type": null
       }
     ],
+    "outputs_data": [
+      "0x"
+    ],
     "witnesses": [
-      {
-        "lock": "0x020000000000000000000000000000000000000000000000000000000000000000",
-        "input_type": null,
-        "output_type": null
-      }
+      "0x020000000000000000000000000000000000000000000000000000000000000000"
     ]
   }
 }
