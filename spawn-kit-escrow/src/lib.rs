@@ -15,6 +15,20 @@ struct EscrowParams {
     reviewer_attestation: Option<bool>,
 }
 
+pub fn verify(params_json: &[u8], current_epoch: u64) -> Result<bool, ErrorCode> {
+    let params_str = core::str::from_utf8(params_json).map_err(|_| ErrorCode::JsonParseError)?;
+    let params: EscrowParams = serde_json_core::from_str::<EscrowParams>(params_str)
+        .map(|(p, _)| p)
+        .map_err(|_| ErrorCode::JsonParseError)?;
+    if current_epoch < params.release_epoch {
+        return Ok(false);
+    }
+    if let Some(false) = params.reviewer_attestation {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
 pub fn entry() -> ! {
     let tracker = CycleTracker::start();
     let request = match read_request() {
@@ -28,23 +42,15 @@ pub fn entry() -> ! {
     let cycles = tracker.elapsed();
     match core::str::from_utf8(&request.action).unwrap_or("") {
         "verify" => {
-            let params_str = core::str::from_utf8(&request.params).unwrap_or("{}");
-            let params: EscrowParams = match serde_json_core::from_str::<EscrowParams>(params_str) {
-                Ok((p, _)) => p,
-                Err(_) => { write_response(&Response::error(ErrorCode::JsonParseError, b"bad params")); ckb_std::syscalls::exit(-1); }
-            };
             let current_epoch = ckb_std::high_level::load_header_epoch_number(0, ckb_std::ckb_constants::Source::HeaderDep).unwrap_or(0);
-            if current_epoch < params.release_epoch {
-                write_response(&Response::error(ErrorCode::UnknownError, b"not yet releasable"));
-                ckb_std::syscalls::exit(-1);
-            }
-            if let Some(attested) = params.reviewer_attestation {
-                if !attested {
-                    write_response(&Response::error(ErrorCode::UnknownError, b"missing attestation"));
+            match verify(&request.params, current_epoch) {
+                Ok(true) => write_response(&Response::ok(None, cycles)),
+                Ok(false) => {
+                    write_response(&Response::error(ErrorCode::UnknownError, b"conditions not met"));
                     ckb_std::syscalls::exit(-1);
                 }
+                Err(e) => { write_response(&Response::error(e, b"bad params")); ckb_std::syscalls::exit(-1); }
             }
-            write_response(&Response::ok(None, cycles));
         }
         "metadata" => {
             let meta = b"{\"name\":\"spawn-kit-escrow\",\"version\":\"0.1.0\"}";

@@ -73,6 +73,22 @@ test-debugger-ratelimit: modules
 # Run all tests (unit + debugger integration)
 test-all: test test-debugger
 
+# ── Fuzzing ───────────────────────────────────────────────────────────
+
+# Requires: nightly Rust (rustup toolchain install nightly)
+fuzz-build:
+	cd fuzz && cargo +nightly fuzz build
+
+# Quick smoke test (100 iterations, <1s each)
+fuzz-smoke:
+	cd fuzz && for t in protocol multisig timelock ratelimit access_control escrow; do \
+		cargo +nightly fuzz run $$t -- -runs=100 -max_total_time=2; \
+	done
+
+# Run a specific fuzz target (e.g. make fuzz-multisig RUNS=10000)
+fuzz-%:
+	cd fuzz && cargo +nightly fuzz run $* -- -runs=$(or $(RUNS),10000)
+
 # ── Code quality ──────────────────────────────────────────────────────
 
 lint:
@@ -98,5 +114,8 @@ help:
 	@echo "  make test            — run unit tests"
 	@echo "  make test-debugger   — run all ckb-debugger integration tests"
 	@echo "  make test-all        — run unit + debugger integration tests"
+	@echo "  make fuzz-build      — build all fuzz targets (requires nightly)"
+	@echo "  make fuzz-smoke      — quick fuzz smoke test (100 iterations each)"
+	@echo "  make fuzz-multisig   — fuzz a specific module (set RUNS env var)"
 	@echo "  make lint            — clippy + fmt check"
 	@echo "  make clean           — remove build artifacts"

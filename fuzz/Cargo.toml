@@ -1,0 +1,61 @@
+[package]
+name = "spawn-kit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+spawn-kit-core = { path = "../spawn-kit-core" }
+spawn-kit-multisig = { path = "../spawn-kit-multisig" }
+spawn-kit-timelock = { path = "../spawn-kit-timelock" }
+spawn-kit-ratelimit = { path = "../spawn-kit-ratelimit" }
+spawn-kit-access-control = { path = "../spawn-kit-access-control" }
+spawn-kit-escrow = { path = "../spawn-kit-escrow" }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "alloc"] }
+serde-json-core = "0.6.0"
+
+[[bin]]
+name = "protocol"
+path = "fuzz_targets/protocol.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "multisig"
+path = "fuzz_targets/multisig.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "timelock"
+path = "fuzz_targets/timelock.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ratelimit"
+path = "fuzz_targets/ratelimit.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "access_control"
+path = "fuzz_targets/access_control.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "escrow"
+path = "fuzz_targets/escrow.rs"
+test = false
+doc = false
+bench = false

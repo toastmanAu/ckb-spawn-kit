@@ -8,6 +8,7 @@ members = [
     "spawn-kit-access-control",
     "spawn-kit-escrow",
 ]
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.1.0"

@@ -11,6 +11,21 @@ struct AccessControlParams {
     presented_token: [u8; 32],
 }
 
+pub fn verify(params_json: &[u8]) -> Result<bool, ErrorCode> {
+    let params_str = core::str::from_utf8(params_json).map_err(|_| ErrorCode::JsonParseError)?;
+    let params: AccessControlParams = serde_json_core::from_str::<AccessControlParams>(params_str)
+        .map(|(p, _)| p)
+        .map_err(|_| ErrorCode::JsonParseError)?;
+    let mut ok = true;
+    for i in 0..32 {
+        if params.required_capability[i] != params.presented_token[i] {
+            ok = false;
+            break;
+        }
+    }
+    Ok(ok)
+}
+
 pub fn entry() -> ! {
     let tracker = CycleTracker::start();
     let request = match read_request() {
@@ -23,19 +38,14 @@ pub fn entry() -> ! {
     }
     let cycles = tracker.elapsed();
     match core::str::from_utf8(&request.action).unwrap_or("") {
-        "verify" => {
-            let params_str = core::str::from_utf8(&request.params).unwrap_or("{}");
-            let params: AccessControlParams = match serde_json_core::from_str::<AccessControlParams>(params_str) {
-                Ok((p, _)) => p,
-                Err(_) => { write_response(&Response::error(ErrorCode::JsonParseError, b"bad params")); ckb_std::syscalls::exit(-1); }
-            };
-            if params.required_capability == params.presented_token {
-                write_response(&Response::ok(None, cycles));
-            } else {
+        "verify" => match verify(&request.params) {
+            Ok(true) => write_response(&Response::ok(None, cycles)),
+            Ok(false) => {
                 write_response(&Response::error(ErrorCode::UnknownError, b"access denied"));
                 ckb_std::syscalls::exit(-1);
             }
-        }
+            Err(e) => { write_response(&Response::error(e, b"bad params")); ckb_std::syscalls::exit(-1); }
+        },
         "metadata" => {
             let meta = b"{\"name\":\"spawn-kit-access-control\",\"version\":\"0.1.0\"}";
             write_response(&Response::ok(Some(meta.to_vec()), cycles));
