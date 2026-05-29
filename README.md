@@ -6,10 +6,11 @@ deploys as an independent RISC-V Cell.
 
 ## Status
 
-**Phase 1: Core protocol + 5 modules scaffolded. API verified against ckb-std
-native.rs (Sep 2025) and ckb-core spawn.rs / pipe.rs (Mar 2025).**
+**Phase 1: Core protocol + 5 modules complete. On-chain diagnostics in progress.**
 
-Ready for: Capsule build integration, ckb-debugger testing, audit preparation.
+Off-chain validation: all tests pass. On-chain: `spawn()` and `pipe()` confirmed
+working. `inherited_fds` (parent-to-child pipe connection) under investigation —
+does not function on current testnet VM.
 
 ## Modules
 
@@ -37,64 +38,78 @@ Each module is an independent Cell referenced via CellDep. The caller's Lock
 Script spawns modules as child processes with cycle budgets. Modules receive
 a JSON Request on stdin and write a JSON Response on stdout.
 
-## Real ckb-std API (verified)
-
-```rust
-pub fn spawn(index: usize, source: Source, place: usize, bounds: usize,
-             spgs: &mut SpawnArgs) -> Result<(), SysError>;
-pub fn pipe() -> Result<(u64, u64), SysError>;   // → (read_fd, write_fd)
-pub fn read(fd: u64, buffer: &mut [u8]) -> Result<usize, SysError>;
-pub fn write(fd: u64, buffer: &[u8]) -> Result<usize, SysError>;
-pub fn wait(pid: u64) -> Result<i8, SysError>;
-pub fn close(fd: u64) -> Result<(), SysError>;
-pub fn process_id() -> u64;
-pub fn inherited_fds(fds: &mut [u64]) -> u64;
-pub fn exit(code: i8) -> !;
-```
-
-## Prerequisites
+## Build & Test
 
 ```bash
+# Prerequisites
 rustup target add riscv64imac-unknown-none-elf
-cargo install ckb-debugger    # for testing
-cargo install ckb-capsule      # for deployment
-cargo install ckb-cli          # for on-chain tx
+cargo install ckb-debugger
+
+# Build all RISC-V modules
+make modules
+
+# Run host-target unit tests (19 tests)
+make test
+
+# Run ckb-debugger integration tests (7 tests)
+make test-debugger
+
+# Fuzzing (requires nightly Rust)
+make fuzz-build
+make fuzz-smoke
 ```
 
-## Build
+## Examples
 
-```bash
-make modules        # Build all RISC-V modules → build/
-make test           # Run host-target unit tests
-```
+| Example | Description |
+|---|---|
+| `examples/basic_multisig/` | Transaction fixtures for ckb-debugger testing |
+| `examples/composed_lock/` | Full multisig + timelock compose via spawn |
+| `examples/timelock_only/` | Minimal single-module spawn composition |
+| `examples/diag/` | On-chain spawn/pipe diagnostic harness (v1-v13) |
+| `examples/echo_child/` | Minimal child process (stdout-only, no stdin) |
 
-## Test with ckb-debugger
+## On-Chain Validation Results
 
-```bash
-# Test multisig module in isolation
-make test-debugger-multisig
+Tests run against CKB testnet (local node: 192.168.68.134:8114).
 
-# Or manually:
-ckb-debugger --tx-file examples/basic_multisig/tx.json \
-             --bin build/spawn-kit-multisig \
-             --mode full
-```
+### Confirmed Working
 
-## Deploy
+| Capability | Status | Method |
+|---|---|---|
+| RISC-V module builds | 5/5 modules | `riscv64imac-unknown-none-elf` |
+| Host unit tests | 19/19 pass | `cargo test --workspace` |
+| ckb-debugger tests | 7/7 pass | `ckb-debugger --tx-file` |
+| Module deployment | Deployed | `ckb-cli deploy` |
+| `spawn()` syscall | Working (v8) | Isolated spawn+wait test |
+| `pipe()` syscall | Working (v7) | Pipe creation succeeds |
+| `wait()` syscall | Working (v8) | Wait for child exit |
+| Code hash resolution | Working | Via CellDep overlay (type_hash match) |
+| Custom lock script execution | Working | Lock script loads and runs on-chain |
+| Transaction pipeline | Working | Build → sign → send via curl RPC |
 
-```bash
-# 1. Build the module
-make spawn-kit-multisig
+### Under Investigation
 
-# 2. Deploy Cell with the binary
-ckb-cli tx build-and-send \
-  --from-account <account> \
-  --to-address <deploy-addr> \
-  --capacity $(stat -c%s build/spawn-kit-multisig) \
-  --data-binary build/spawn-kit-multisig
+| Capability | Status | Detail |
+|---|---|---|
+| `inherited_fds` (stdin pipe) | **Not working** | `write()` to child stdin fails: OtherEndClosed (v7, v9, v11) |
+| `inherited_fds` (stdout pipe) | **Not working** | `read()` from child stdout fails: no data (v13 self-spawn) |
+| Write-before-spawn | **Deadlock** | Pipe data lost across spawn boundary (v10) |
+| Full spawn composition | **Blocked** | Depends on inherited_fds fix |
 
-# 3. Record CellDep reference → use in your Lock Script
-```
+### Root Cause Analysis
+
+The CKB VM's `spawn()` syscall correctly creates child processes (confirmed
+with spawn+wait). The `pipe()` syscall creates valid fd pairs. However,
+`inherited_fds` — the mechanism that maps parent pipe file descriptors to
+the child's stdin/stdout/stderr — does not connect the fds on the current
+testnet VM. The child process receives default fds (0, 1, 2) instead of
+the parent's pipe fds passed via `SpawnArgs.inherited_fds`.
+
+This prevents the parent from writing request data to the child's stdin or
+reading response data from the child's stdout. The spawn composition model
+is architecturally correct but requires a VM update that properly supports
+the full spawn+inherited_fds IPC model.
 
 ## Key Design Decisions
 
@@ -104,10 +119,38 @@ ckb-cli tx build-and-send \
 - **JSON over pipes**: human-debuggable, no custom serialization format
 - **Algorithm agnostic**: multisig delegates to per-algorithm check modules via spawn
 
-## Next Steps (not yet implemented)
+## Roadmap
 
-1. Capsule build configuration for each module
-2. ckb-debugger integration tests with real tx.json fixtures
-3. Cycle cost benchmarks for spawn + pipe + JSON round-trip
-4. Audit preparation: fuzz harness using ckb-script-fuzzing-toolkit
-5. First on-chain deployment to CKB testnet
+### Completed
+- [x] Core protocol ABI (Request/Response types, error codes)
+- [x] 5 modules (multisig, timelock, ratelimit, access-control, escrow)
+- [x] Caller library (`call_module`, `pipe_modules`, `call_all`)
+- [x] Host-target test suite (19 tests)
+- [x] ckb-debugger integration tests (7 tests)
+- [x] Fuzz harness (6 targets + corpus)
+- [x] RISC-V build pipeline with W^X-compliant binaries
+- [x] On-chain deployment pipeline (public testnet + local node)
+- [x] Code hash resolution via CellDep overlay
+- [x] On-chain spawn/pipe/wait syscall validation
+
+### Blocked (VM dependency)
+- [ ] Full spawn+pipes composition (requires inherited_fds fix)
+- [ ] Cycle cost benchmarks for spawn + pipe + JSON round-trip
+- [ ] First end-to-end composed lock on testnet
+
+### Next
+- [ ] Real secp256k1-blake2b verification in multisig module
+- [ ] Witness access for spawned modules
+- [ ] Capsule build integration
+- [ ] Production audit
+- [ ] Mainnet deployment
+
+## Deployed Cells (CKB Testnet)
+
+| Artifact | tx_hash | Size |
+|----------|---------|------|
+| spawn-kit-timelock (zero-locked) | `0xd927...9237:0` | 42K |
+| spawn-kit-multisig | `0xf91b...0c8c:0` | 42K |
+| spawn-diag-v13 (self-spawn test) | `0xd463...d5d3:0` | 9K |
+| echo-child-v2 | `0xf580...abb8:0` | 9K |
+| timelock-only-lock-fixed | `0x183f...72cd:0` | 22K |
