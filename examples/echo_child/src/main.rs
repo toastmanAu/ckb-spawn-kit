@@ -1,4 +1,4 @@
-// RISC-V binary entry point — not compiled on host targets.
+// RISC-V binary - just writes to stdout and exits. No stdin read.
 #![cfg(target_arch = "riscv64")]
 #![no_std]
 #![no_main]
@@ -8,7 +8,10 @@ default_alloc!();
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    spawn_kit_ratelimit::entry()
+    // Write a simple message to stdout (fd 1)
+    let msg = b"ECHO_OK";
+    ckb_std::syscalls::write(1, msg).ok();
+    ckb_std::syscalls::exit(0);
 }
 
 #[panic_handler]

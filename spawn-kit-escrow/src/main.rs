@@ -1,3 +1,5 @@
+// RISC-V binary entry point — not compiled on host targets.
+#![cfg(target_arch = "riscv64")]
 #![no_std]
 #![no_main]
 

@@ -1,6 +1,4 @@
 //! Caller-side library for scripts that compose spawn-kit modules.
-//!
-//! Verified against ckb-std contracts/spawn-caller/src/entry.rs (Sep 2025).
 
 extern crate alloc;
 use alloc::vec::Vec;
@@ -25,9 +23,10 @@ pub fn call_module(
     let (r0, w0) = syscalls::pipe().map_err(|_| ErrorCode::PipeReadError)?;
     let (r1, w1) = syscalls::pipe().map_err(|_| ErrorCode::PipeReadError)?;
 
-    let son_fds: [u64; 3] = [r1, w0, 0];
+    let mut fds_vec: alloc::vec::Vec<u64> = alloc::vec::Vec::new();
+    fds_vec.extend_from_slice(&[r1, w0]);
+    fds_vec.push(0);
 
-    // Build JSON request frame
     let request_json = alloc::format!(
         r#"{{"magic":[83,75,75,84],"version":1,"action":"verify","params":{}}}"#,
         params_json
@@ -43,22 +42,21 @@ pub fn call_module(
         argc,
         argv: argv.as_ptr() as *const *const i8,
         process_id: &mut child_pid as *mut u64,
-        inherited_fds: son_fds.as_ptr(),
+        inherited_fds: fds_vec.as_ptr(),
     };
 
     syscalls::spawn(cell_dep_index, Source::CellDep, 0, 0, &mut spgs)
         .map_err(|_| ErrorCode::ChildProcessError)?;
 
     let pid = child_pid;
-    syscalls::close(r1).ok();
-    syscalls::close(w0).ok();
-
     syscalls::write(w1, request_json.as_bytes()).map_err(|_| ErrorCode::PipeWriteError)?;
     syscalls::close(w1).ok();
 
     let mut buf = [0u8; crate::MAX_FRAME_SIZE];
     let len = syscalls::read(r0, &mut buf).map_err(|_| ErrorCode::PipeReadError)?;
     syscalls::close(r0).ok();
+    syscalls::close(r1).ok();
+    syscalls::close(w0).ok();
 
     let exit_code = syscalls::wait(pid).map_err(|_| ErrorCode::ChildProcessError)?;
 
@@ -77,27 +75,18 @@ pub fn call_module(
 
 /// Chain two modules: A's data field becomes B's params.
 pub fn pipe_modules(
-    cell_dep_a: usize,
-    params_a: &str,
-    cell_dep_b: usize,
-    ctx: &CallContext,
+    cell_dep_a: usize, params_a: &str,
+    cell_dep_b: usize, ctx: &CallContext,
 ) -> Result<ModuleResult, ErrorCode> {
     let result_a = call_module(cell_dep_a, params_a, ctx)?;
-    let intermediate = result_a.response.data
-        .as_ref()
-        .map(|v| core::str::from_utf8(v).unwrap_or("{}"))
-        .unwrap_or("{}");
+    let intermediate = result_a.response.data.as_ref()
+        .map(|v| core::str::from_utf8(v).unwrap_or("{}")).unwrap_or("{}");
     call_module(cell_dep_b, intermediate, ctx)
 }
 
 /// Run multiple modules in parallel.
-pub fn call_all(
-    modules: &[(usize, &str)],
-    ctx: &CallContext,
-) -> Result<Vec<ModuleResult>, ErrorCode> {
+pub fn call_all(modules: &[(usize, &str)], ctx: &CallContext) -> Result<Vec<ModuleResult>, ErrorCode> {
     let mut results = Vec::with_capacity(modules.len());
-    for (idx, params) in modules {
-        results.push(call_module(*idx, params, ctx)?);
-    }
+    for (idx, params) in modules { results.push(call_module(*idx, params, ctx)?); }
     Ok(results)
 }

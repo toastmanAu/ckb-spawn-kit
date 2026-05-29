@@ -1,4 +1,4 @@
-// RISC-V binary entry point — not compiled on host targets.
+// RISC-V binary entry point
 #![cfg(target_arch = "riscv64")]
 #![no_std]
 #![no_main]
@@ -8,7 +8,8 @@ default_alloc!();
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    spawn_kit_ratelimit::entry()
+    let code = spawn_diag::verify();
+    ckb_std::syscalls::exit(code);
 }
 
 #[panic_handler]

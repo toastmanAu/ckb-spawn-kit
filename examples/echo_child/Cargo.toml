@@ -1,0 +1,20 @@
+[package]
+name = "echo-child"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[[bin]]
+name = "echo-child"
+path = "src/main.rs"
+
+[dependencies]
+ckb-std = { version = "0.16", default-features = false, features = ["allocator"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

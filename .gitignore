@@ -1,4 +1,11 @@
 /target
 /build
+**/target/
 **/*.rs.bk
 .env
+*.json
+!Cargo.lock
+migrations/
+deploy*.toml
+/tmp
+test-*.json

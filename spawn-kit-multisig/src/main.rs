@@ -1,3 +1,6 @@
+// This binary entry point is only for RISC-V cross-compilation.
+// On host targets, only the library is used (via `cargo test`).
+#![cfg(target_arch = "riscv64")]
 #![no_std]
 #![no_main]
 

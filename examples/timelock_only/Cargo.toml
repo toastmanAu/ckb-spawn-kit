@@ -1,12 +1,12 @@
 [package]
-name = "composed-lock-example"
+name = "timelock-only-lock"
 version = "0.1.0"
 edition = "2021"
 
 [workspace]
 
 [[bin]]
-name = "composed-lock-example"
+name = "timelock-only-lock"
 path = "src/main.rs"
 
 [lib]
@@ -17,3 +17,10 @@ spawn-kit-core = { path = "../../spawn-kit-core" }
 ckb-std = { version = "0.16", default-features = false, features = ["allocator", "ckb-types"] }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 serde-json-core = "0.6"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"

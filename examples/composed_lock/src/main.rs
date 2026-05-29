@@ -8,7 +8,10 @@ default_alloc!();
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    spawn_kit_ratelimit::entry()
+    match composed_lock_example::verify() {
+        Ok(()) => ckb_std::syscalls::exit(0),
+        Err(code) => ckb_std::syscalls::exit(code),
+    }
 }
 
 #[panic_handler]
